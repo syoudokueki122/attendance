@@ -19,7 +19,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
@@ -89,6 +89,7 @@
             border-radius: 12px;
             overflow-x: auto;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px;
         }
 
         table {
@@ -149,18 +150,58 @@
             color: #dadce0;
         }
 
-        .delete-btn {
-            background: none;
-            border: none;
-            color: #ea4335;
-            cursor: pointer;
-            font-size: 20px;
-            opacity: 0.4;
+        .date-header {
+            position: relative;
+            padding-right: 20px;
         }
 
-        .delete-btn:hover {
+        .name-cell {
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .name-delete {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            background: #ea4335;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 14px;
+            line-height: 18px;
+            cursor: pointer;
+            opacity: 0.7;
+            padding: 0;
+        }
+
+        .name-delete:hover {
             opacity: 1;
-            background: none;
+            background: #c62828;
+        }
+
+        .date-delete {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ea4335;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 14px;
+            line-height: 18px;
+            cursor: pointer;
+            opacity: 0.7;
+            padding: 0;
+        }
+
+        .date-delete:hover {
+            opacity: 1;
+            background: #c62828;
         }
 
         .empty-state {
@@ -180,6 +221,14 @@
             border-radius: 8px;
             display: none;
             z-index: 1000;
+        }
+
+        .week-label {
+            background: #e8f0fe;
+            color: #1967d2;
+            font-weight: 600;
+            text-align: center;
+            padding: 8px;
         }
 
         @media (max-width: 600px) {
@@ -204,14 +253,11 @@
                 <button onclick="addStudent()">追加</button>
             </div>
             <div class="control-group">
-                <input type="text" id="dateInput" placeholder="日付 (例: 2/2)">
-                <button onclick="addDate()" class="secondary">日付追加</button>
+                <button onclick="addDate()" class="secondary">今日の日付を追加</button>
             </div>
         </div>
 
-        <div class="table-container">
-            <div id="tableContent"></div>
-        </div>
+        <div id="tablesContainer"></div>
     </div>
 
     <div id="toast" class="toast"></div>
@@ -241,7 +287,7 @@
             if (!data.students) data.students = [];
             if (!data.dates) data.dates = [];
             if (!data.attendance) data.attendance = {};
-            renderTable();
+            renderTables();
         });
 
         function showToast(msg) {
@@ -251,30 +297,79 @@
             setTimeout(() => t.style.display = 'none', 2000);
         }
 
-        function renderTable() {
-            const container = document.getElementById('tableContent');
+        function getMonth(dateStr) {
+            // "2/2" -> "2", "12/25" -> "12"
+            return dateStr.split('/')[0];
+        }
+
+        function renderTables() {
+            const container = document.getElementById('tablesContainer');
 
             if (data.students.length === 0) {
-                container.innerHTML = '<div class="empty-state"><p><strong>まだ塾生がいません</strong></p><p>上から追加してください</p></div>';
+                container.innerHTML = '<div class="table-container"><div class="empty-state"><p><strong>まだ塾生がいません</strong></p><p>上から追加してください</p></div></div>';
                 return;
             }
 
-            let html = '<table><thead><tr><th>名前</th>';
-            data.dates.forEach(d => html += `<th>${d}</th>`);
-            html += '<th></th></tr></thead><tbody>';
+            // 日付を月ごとに分割
+            const dateChunks = [];
+            let currentChunk = null;
+            let currentMonth = null;
 
-            data.students.forEach((student, si) => {
-                html += `<tr><td>${student}</td>`;
-                data.dates.forEach((date, di) => {
-                    const key = `${si}_${di}`;
-                    const present = data.attendance[key] === true;
-                    html += `<td class="attendance-cell ${present ? 'present' : 'absent'}"
-                         onclick="toggle(${si}, ${di})">${present ? '○' : '・'}</td>`;
-                });
-                html += `<td><button class="delete-btn" onclick="deleteStudent(${si})">×</button></td></tr>`;
+            data.dates.forEach((date, index) => {
+                const month = getMonth(date);
+                if (month !== currentMonth) {
+                    currentChunk = { dates: [], startIndex: index, month: month };
+                    dateChunks.push(currentChunk);
+                    currentMonth = month;
+                }
+                currentChunk.dates.push(date);
             });
 
-            html += '</tbody></table>';
+            // 日付がない場合は空のチャンクを追加
+            if (dateChunks.length === 0) {
+                dateChunks.push({ dates: [], startIndex: 0, month: '' });
+            }
+
+            let html = '';
+
+            dateChunks.forEach((chunk, chunkIndex) => {
+                html += `<div class="table-container">`;
+
+                if (dateChunks.length > 1 || chunk.month) {
+                    html += `<div class="week-label">${chunk.month}月</div>`;
+                }
+
+                html += '<table><thead><tr><th>名前</th>';
+
+                // 日付ヘッダー（削除ボタン付き）
+                chunk.dates.forEach((d, i) => {
+                    const actualIndex = chunk.startIndex + i;
+                    html += `<th><div class="date-header">${d}<button class="date-delete" onclick="deleteDate(${actualIndex})" title="日付を削除">×</button></div></th>`;
+                });
+
+                html += '</tr></thead><tbody>';
+
+                // 学生データ
+                data.students.forEach((student, si) => {
+                    // 名前セル（削除ボタン付きは最初のテーブルのみ）
+                    if (chunkIndex === 0) {
+                        html += `<tr><td><div class="name-cell">${student}<button class="name-delete" onclick="deleteStudent(${si})" title="削除">×</button></div></td>`;
+                    } else {
+                        html += `<tr><td>${student}</td>`;
+                    }
+                    chunk.dates.forEach((date, i) => {
+                        const di = chunk.startIndex + i;
+                        const key = `${si}_${di}`;
+                        const present = data.attendance[key] === true;
+                        html += `<td class="attendance-cell ${present ? 'present' : 'absent'}"
+                             onclick="toggle(${si}, ${di})">${present ? '○' : '・'}</td>`;
+                    });
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table></div>';
+            });
+
             container.innerHTML = html;
         }
 
@@ -290,17 +385,35 @@
         }
 
         function addDate() {
-            const input = document.getElementById('dateInput');
-            let dateStr = input.value.trim();
-            if (!dateStr) {
-                const today = new Date();
-                dateStr = (today.getMonth() + 1) + '/' + today.getDate();
-            }
+            const today = new Date();
+            const days = ['日', '月', '火', '水', '木', '金', '土'];
+            const dateStr = (today.getMonth() + 1) + '/' + today.getDate() + '(' + days[today.getDay()] + ')';
 
             data.dates.push(dateStr);
             db.ref('attendance/dates').set(data.dates);
-            input.value = '';
             showToast(dateStr + ' を追加');
+        }
+
+        function deleteDate(index) {
+            data.dates.splice(index, 1);
+
+            // 出席データを再構築
+            const newAttendance = {};
+            Object.keys(data.attendance).forEach(key => {
+                const [si, di] = key.split('_').map(Number);
+                if (di < index) {
+                    newAttendance[key] = data.attendance[key];
+                } else if (di > index) {
+                    newAttendance[`${si}_${di - 1}`] = data.attendance[key];
+                }
+            });
+
+            db.ref('attendance').set({
+                students: data.students,
+                dates: data.dates,
+                attendance: newAttendance
+            });
+            showToast('日付を削除しました');
         }
 
         function toggle(studentIndex, dateIndex) {
@@ -310,8 +423,6 @@
         }
 
         function deleteStudent(index) {
-            if (!confirm(data.students[index] + ' を削除しますか？')) return;
-
             data.students.splice(index, 1);
             const newAttendance = {};
             Object.keys(data.attendance).forEach(key => {
@@ -333,9 +444,6 @@
 
         document.getElementById('studentName').addEventListener('keypress', e => {
             if (e.key === 'Enter') addStudent();
-        });
-        document.getElementById('dateInput').addEventListener('keypress', e => {
-            if (e.key === 'Enter') addDate();
         });
     </script>
 </body>
