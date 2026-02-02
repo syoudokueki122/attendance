@@ -400,7 +400,9 @@
         function addDate() {
             const today = new Date();
             const days = ['日', '月', '火', '水', '木', '金', '土'];
-            const dateStr = (today.getMonth() + 1) + '/' + today.getDate() + '(' + days[today.getDay()] + ')';
+            const hours = String(today.getHours()).padStart(2, '0');
+            const minutes = String(today.getMinutes()).padStart(2, '0');
+            const dateStr = (today.getMonth() + 1) + '/' + today.getDate() + '(' + days[today.getDay()] + ') ' + hours + ':' + minutes;
 
             data.dates.push(dateStr);
             db.ref('attendance/dates').set(data.dates);
