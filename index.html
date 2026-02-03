@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>出席簿</title>
+    <title>議事録</title>
     <style>
         * {
             box-sizing: border-box;
@@ -19,7 +19,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 900px;
             margin: 0 auto;
         }
 
@@ -84,124 +84,98 @@
             background: #4a4e51;
         }
 
-        .table-container {
+        button.danger {
+            background: #ea4335;
+        }
+
+        button.danger:hover {
+            background: #c62828;
+        }
+
+        .meeting-list {
             background: white;
             border-radius: 12px;
-            overflow-x: auto;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             margin-bottom: 15px;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 300px;
-        }
-
-        th,
-        td {
-            padding: 14px 12px;
-            text-align: center;
+        .meeting-item {
+            padding: 15px;
             border-bottom: 1px solid #eee;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        th {
-            background: #4285f4;
-            color: white;
-            font-weight: 600;
-            position: sticky;
-            top: 0;
-        }
-
-        th:first-child {
-            text-align: left;
-            background: #3367d6;
-        }
-
-        td:first-child {
-            text-align: left;
-            font-weight: 600;
-            background: #fafafa;
-        }
-
-        tr:hover td {
+        .meeting-item:hover {
             background: #f5f8ff;
         }
 
-        tr:hover td:first-child {
-            background: #eef3fc;
+        .meeting-item:last-child {
+            border-bottom: none;
         }
 
-        .attendance-cell {
-            cursor: pointer;
-            font-size: 28px;
-            user-select: none;
+        .meeting-title {
+            font-weight: 600;
+            color: #333;
         }
 
-        .attendance-cell:hover {
-            transform: scale(1.2);
+        .meeting-date {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
         }
 
-        .present {
-            color: #34a853;
-        }
-
-        .absent {
-            color: #dadce0;
-        }
-
-        .date-header {
-            position: relative;
-            padding-right: 20px;
-        }
-
-        .name-cell {
-            position: relative;
-            padding-left: 25px;
-        }
-
-        .name-delete {
-            position: absolute;
-            top: -5px;
-            left: -5px;
+        .meeting-delete {
+            padding: 6px 12px;
             background: #ea4335;
             color: white;
             border: none;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            font-size: 14px;
-            line-height: 18px;
+            border-radius: 6px;
+            font-size: 12px;
             cursor: pointer;
-            opacity: 0.7;
-            padding: 0;
         }
 
-        .name-delete:hover {
-            opacity: 1;
+        .meeting-delete:hover {
             background: #c62828;
         }
 
-        .date-delete {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #ea4335;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            font-size: 14px;
-            line-height: 18px;
-            cursor: pointer;
-            opacity: 0.7;
-            padding: 0;
+        .editor-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            display: none;
         }
 
-        .date-delete:hover {
-            opacity: 1;
-            background: #c62828;
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .editor-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 400px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            border-color: #4285f4;
+            outline: none;
         }
 
         .empty-state {
@@ -223,21 +197,15 @@
             z-index: 1000;
         }
 
-        .week-label {
-            background: #e8f0fe;
-            color: #1967d2;
-            font-weight: 600;
-            text-align: center;
-            padding: 8px;
+        .save-status {
+            font-size: 12px;
+            color: #34a853;
+            margin-left: 10px;
         }
 
         @media (max-width: 600px) {
             .control-group {
                 min-width: 100%;
-            }
-
-            .attendance-cell {
-                font-size: 24px;
             }
         }
     </style>
@@ -245,19 +213,25 @@
 
 <body>
     <div class="container">
-        <h1>出席簿</h1>
+        <h1>議事録</h1>
 
         <div class="controls">
             <div class="control-group">
-                <input type="text" id="studentName" placeholder="塾生の名前">
-                <button onclick="addStudent()">追加</button>
-            </div>
-            <div class="control-group">
-                <button onclick="addDate()" class="secondary">今日の日付を追加</button>
+                <input type="text" id="meetingTitle" placeholder="議事録のタイトル">
+                <button onclick="createMeeting()">新規作成</button>
             </div>
         </div>
 
-        <div id="tablesContainer"></div>
+        <div id="meetingList" class="meeting-list"></div>
+
+        <div id="editorContainer" class="editor-container">
+            <div class="editor-header">
+                <span class="editor-title" id="editorTitle"></span>
+                <span class="save-status" id="saveStatus"></span>
+                <button class="secondary" onclick="closeEditor()">閉じる</button>
+            </div>
+            <textarea id="meetingContent" placeholder="議事録の内容を入力..." oninput="autoSave()"></textarea>
+        </div>
     </div>
 
     <div id="toast" class="toast"></div>
@@ -280,27 +254,13 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        const SPREADSHEET_SYNC_URL = 'https://script.google.com/macros/s/AKfycbynYjkdIQYeQTBFIdLyE7PmS-CUPkKtoESGa4i83ruoYRKY_DS_Py7w_AxAoipwwlk/exec';
+        let meetings = {};
+        let currentMeetingId = null;
+        let saveTimeout = null;
 
-        let data = { students: [], dates: [], attendance: {} };
-
-        // スプレッドシートに同期
-        function syncToSpreadsheet() {
-            fetch(SPREADSHEET_SYNC_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            }).catch(err => console.log('Sync error:', err));
-        }
-
-        db.ref('attendance').on('value', (snapshot) => {
-            data = snapshot.val() || { students: [], dates: [], attendance: {} };
-            if (!data.students) data.students = [];
-            if (!data.dates) data.dates = [];
-            if (!data.attendance) data.attendance = {};
-            renderTables();
-            syncToSpreadsheet();
+        db.ref('meetings').on('value', (snapshot) => {
+            meetings = snapshot.val() || {};
+            renderMeetings();
         });
 
         function showToast(msg) {
@@ -310,155 +270,97 @@
             setTimeout(() => t.style.display = 'none', 2000);
         }
 
-        function getMonth(dateStr) {
-            // "2/2" -> "2", "12/25" -> "12"
-            return dateStr.split('/')[0];
-        }
+        function renderMeetings() {
+            const container = document.getElementById('meetingList');
 
-        function renderTables() {
-            const container = document.getElementById('tablesContainer');
+            const meetingIds = Object.keys(meetings).sort((a, b) => {
+                return (meetings[b].createdAt || 0) - (meetings[a].createdAt || 0);
+            });
 
-            if (data.students.length === 0) {
-                container.innerHTML = '<div class="table-container"><div class="empty-state"><p><strong>まだ塾生がいません</strong></p><p>上から追加してください</p></div></div>';
+            if (meetingIds.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p><strong>まだ議事録がありません</strong></p><p>上から新規作成してください</p></div>';
                 return;
             }
 
-            // 日付を月ごとに分割
-            const dateChunks = [];
-            let currentChunk = null;
-            let currentMonth = null;
-
-            data.dates.forEach((date, index) => {
-                const month = getMonth(date);
-                if (month !== currentMonth) {
-                    currentChunk = { dates: [], startIndex: index, month: month };
-                    dateChunks.push(currentChunk);
-                    currentMonth = month;
-                }
-                currentChunk.dates.push(date);
-            });
-
-            // 日付がない場合は空のチャンクを追加
-            if (dateChunks.length === 0) {
-                dateChunks.push({ dates: [], startIndex: 0, month: '' });
-            }
-
             let html = '';
-
-            dateChunks.forEach((chunk, chunkIndex) => {
-                html += `<div class="table-container">`;
-
-                if (dateChunks.length > 1 || chunk.month) {
-                    html += `<div class="week-label">${chunk.month}月</div>`;
-                }
-
-                html += '<table><thead><tr><th>名前</th>';
-
-                // 日付ヘッダー（削除ボタン付き）
-                chunk.dates.forEach((d, i) => {
-                    const actualIndex = chunk.startIndex + i;
-                    html += `<th><div class="date-header">${d}<button class="date-delete" onclick="deleteDate(${actualIndex})" title="日付を削除">×</button></div></th>`;
-                });
-
-                html += '</tr></thead><tbody>';
-
-                // 学生データ
-                data.students.forEach((student, si) => {
-                    // 名前セル（削除ボタン付きは最初のテーブルのみ）
-                    if (chunkIndex === 0) {
-                        html += `<tr><td><div class="name-cell">${student}<button class="name-delete" onclick="deleteStudent(${si})" title="削除">×</button></div></td>`;
-                    } else {
-                        html += `<tr><td>${student}</td>`;
-                    }
-                    chunk.dates.forEach((date, i) => {
-                        const di = chunk.startIndex + i;
-                        const key = `${si}_${di}`;
-                        const present = data.attendance[key] === true;
-                        html += `<td class="attendance-cell ${present ? 'present' : 'absent'}"
-                             onclick="toggle(${si}, ${di})">${present ? '○' : '・'}</td>`;
-                    });
-                    html += '</tr>';
-                });
-
-                html += '</tbody></table></div>';
+            meetingIds.forEach(id => {
+                const meeting = meetings[id];
+                const date = meeting.createdAt ? new Date(meeting.createdAt).toLocaleString('ja-JP') : '';
+                html += `
+                    <div class="meeting-item" onclick="openMeeting('${id}')">
+                        <div>
+                            <div class="meeting-title">${meeting.title || '無題'}</div>
+                            <div class="meeting-date">${date}</div>
+                        </div>
+                        <button class="meeting-delete" onclick="event.stopPropagation(); deleteMeeting('${id}')">削除</button>
+                    </div>
+                `;
             });
 
             container.innerHTML = html;
         }
 
-        function addStudent() {
-            const input = document.getElementById('studentName');
-            const name = input.value.trim();
-            if (!name) return;
+        function createMeeting() {
+            const input = document.getElementById('meetingTitle');
+            const title = input.value.trim() || '無題の議事録';
 
-            data.students.push(name);
-            db.ref('attendance/students').set(data.students);
+            const newMeetingRef = db.ref('meetings').push();
+            newMeetingRef.set({
+                title: title,
+                content: '',
+                createdAt: Date.now()
+            });
+
             input.value = '';
-            showToast(name + ' を追加');
+            showToast(title + ' を作成しました');
         }
 
-        function addDate() {
-            const today = new Date();
-            const days = ['日', '月', '火', '水', '木', '金', '土'];
-            const hours = String(today.getHours()).padStart(2, '0');
-            const minutes = String(today.getMinutes()).padStart(2, '0');
-            const dateStr = (today.getMonth() + 1) + '/' + today.getDate() + '(' + days[today.getDay()] + ') ' + hours + ':' + minutes;
+        function openMeeting(id) {
+            currentMeetingId = id;
+            const meeting = meetings[id];
 
-            data.dates.push(dateStr);
-            db.ref('attendance/dates').set(data.dates);
-            showToast(dateStr + ' を追加');
+            document.getElementById('editorTitle').textContent = meeting.title;
+            document.getElementById('meetingContent').value = meeting.content || '';
+            document.getElementById('editorContainer').style.display = 'block';
+            document.getElementById('meetingList').style.display = 'none';
+            document.getElementById('saveStatus').textContent = '';
         }
 
-        function deleteDate(index) {
-            data.dates.splice(index, 1);
-
-            // 出席データを再構築
-            const newAttendance = {};
-            Object.keys(data.attendance).forEach(key => {
-                const [si, di] = key.split('_').map(Number);
-                if (di < index) {
-                    newAttendance[key] = data.attendance[key];
-                } else if (di > index) {
-                    newAttendance[`${si}_${di - 1}`] = data.attendance[key];
-                }
-            });
-
-            db.ref('attendance').set({
-                students: data.students,
-                dates: data.dates,
-                attendance: newAttendance
-            });
-            showToast('日付を削除しました');
+        function closeEditor() {
+            currentMeetingId = null;
+            document.getElementById('editorContainer').style.display = 'none';
+            document.getElementById('meetingList').style.display = 'block';
         }
 
-        function toggle(studentIndex, dateIndex) {
-            const key = `${studentIndex}_${dateIndex}`;
-            const current = data.attendance[key] === true;
-            db.ref(`attendance/attendance/${key}`).set(!current);
+        function autoSave() {
+            if (!currentMeetingId) return;
+
+            document.getElementById('saveStatus').textContent = '保存中...';
+
+            if (saveTimeout) {
+                clearTimeout(saveTimeout);
+            }
+
+            saveTimeout = setTimeout(() => {
+                const content = document.getElementById('meetingContent').value;
+                db.ref(`meetings/${currentMeetingId}/content`).set(content);
+                document.getElementById('saveStatus').textContent = '保存しました';
+            }, 500);
         }
 
-        function deleteStudent(index) {
-            data.students.splice(index, 1);
-            const newAttendance = {};
-            Object.keys(data.attendance).forEach(key => {
-                const [si, di] = key.split('_').map(Number);
-                if (si < index) {
-                    newAttendance[key] = data.attendance[key];
-                } else if (si > index) {
-                    newAttendance[`${si - 1}_${di}`] = data.attendance[key];
-                }
-            });
+        function deleteMeeting(id) {
+            if (!confirm('この議事録を削除しますか？')) return;
 
-            db.ref('attendance').set({
-                students: data.students,
-                dates: data.dates,
-                attendance: newAttendance
-            });
+            db.ref(`meetings/${id}`).remove();
             showToast('削除しました');
+
+            if (currentMeetingId === id) {
+                closeEditor();
+            }
         }
 
-        document.getElementById('studentName').addEventListener('keypress', e => {
-            if (e.key === 'Enter') addStudent();
+        document.getElementById('meetingTitle').addEventListener('keypress', e => {
+            if (e.key === 'Enter') createMeeting();
         });
     </script>
 </body>
